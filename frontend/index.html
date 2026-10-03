@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM Forward-Pass Debugger</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div>
+        <div class="eyebrow">LLM FROM SCRATCH</div>
+        <h1>Forward-Pass Debugger</h1>
+        <p class="muted">Inspect one real prompt without drowning in every multiplication.</p>
+      </div>
+
+      <nav id="stepNav" class="step-nav">
+        <button data-step="overview" class="active">1. Overview</button>
+        <button data-step="tokens">2. Tokens</button>
+        <button data-step="embeddings">3. Embeddings</button>
+        <button data-step="attention">4. Attention</button>
+        <button data-step="mlp">5. MLP / GELU</button>
+        <button data-step="logits">6. Logits</button>
+      </nav>
+
+      <label class="file-button">
+        Load trace.json
+        <input id="traceFile" type="file" accept="application/json,.json">
+      </label>
+    </aside>
+
+    <main class="main">
+      <header class="toolbar">
+        <div>
+          <div class="eyebrow">TRACE</div>
+          <div id="traceSummary" class="trace-summary">No trace loaded</div>
+        </div>
+        <div id="selectors" class="selectors hidden">
+          <label>Layer <select id="layerSelect"></select></label>
+          <label>Head <select id="headSelect"></select></label>
+        </div>
+      </header>
+
+      <section id="emptyState" class="empty-state">
+        <h2>Load a forward-pass trace</h2>
+        <p>Generate <code>trace.json</code> from the trained Raschka-style model, then choose it here.</p>
+      </section>
+
+      <section id="content" class="content hidden"></section>
+    </main>
+  </div>
+
+  <script>window.TRACE_DATA = null;</script>
+  <script src="app.js"></script>
+</body>
+</html>
