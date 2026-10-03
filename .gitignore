@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pth
+*.pt
+trace.json
+llm-debugger.html
+.DS_Store
