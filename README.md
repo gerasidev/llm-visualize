@@ -1,100 +1,93 @@
 # LLM Visualize
 
-A small, inspectable debugger for the GPT model built in Sebastian Raschka's *Build a Large Language Model (From Scratch)*.
+An educational debugger for one real forward pass through the tiny **Mini-World GPT** trained from scratch in the Kaggle notebook.
 
-The goal is not to render every multiplication. It is to move through one real forward pass and inspect the tensors that matter:
+The purpose is to make Transformer internals inspectable rather than to build a production LLM UI.
 
-```
-tokens -> embeddings -> layer norm -> Q/K/V -> QK^T -> softmax
-       -> attention output -> residual -> layer norm
-       -> W1 -> GELU -> W2 -> residual -> logits
-```
+## Run locally
 
-## Train once, visualize many times
+Requirements: Node.js 20+.
 
-Do **not** retrain the model whenever HTML/CSS/JS changes.
-
-After training, save the checkpoint:
-
-```python
-from python.trace_raschka import save_model_checkpoint
-
-save_model_checkpoint(
-    model,
-    "/kaggle/working/verdict-gpt.pth",
-    config=GPT_CONFIG_124M,
-    extra={"dataset": "the-verdict.txt"},
-)
+```bash
+git clone https://github.com/gerasidev/llm-visualize.git
+cd llm-visualize
+npm install
+npm run dev
 ```
 
-Later, reconstruct the same model class/config and load the weights:
+Open the local URL printed by Vite (normally `http://localhost:5173`).
 
-```python
-from python.trace_raschka import load_model_checkpoint
+### Load the Mini-World trace
 
-load_model_checkpoint(model, "/kaggle/working/verdict-gpt.pth", device="cpu")
-model.eval()
+The browser needs the forward-pass JSON, not the PyTorch checkpoint.
+
+You have two options:
+
+1. **Simplest:** start the app with `npm run dev`, then drag `mini-world-trace.json` into the page.
+2. **Automatic:** copy the file to:
+
+```text
+frontend/mini-world-trace.json
 ```
 
-On Kaggle, keep the checkpoint as a notebook output when you Save Version, or publish it as a Kaggle Dataset so future sessions can attach it without retraining.
+Then `npm run dev` loads it automatically.
 
-## Create a trace
+The trace and model checkpoint are intentionally ignored by Git. Keep `mini-world-gpt.pth` as your trained-model artifact; it is only needed when you want Python/PyTorch to generate a new trace for a different prompt.
 
-The tracer expects the Raschka-style attributes used in the book:
-`tok_emb`, `pos_emb`, `drop_emb`, `trf_blocks`, `final_norm`, and `out_head`.
+## What the debugger shows
 
-```python
-import torch
-import tiktoken
-from python.trace_raschka import trace_forward_pass, write_trace
+The current local UI walks through:
 
-tokenizer = tiktoken.get_encoding("gpt2")
-text = "Every effort moves you"
-ids = tokenizer.encode(text)
-input_ids = torch.tensor(ids).unsqueeze(0)
-
-trace = trace_forward_pass(
-    model,
-    input_ids,
-    tokens=[tokenizer.decode([i]) for i in ids],
-    decode_token=lambda i: tokenizer.decode([i]),
-    top_k=10,
-)
-
-write_trace(trace, "/kaggle/working/trace.json")
+```text
+tokens
+  -> token + position embeddings
+  -> self-attention (layer/head)
+  -> Q · K / sqrt(d) drill-down
+  -> softmax attention weights
+  -> residual stream
+  -> W1 -> GELU -> W2
+  -> final logits / next-token probabilities
 ```
 
-The trace is inference only: `model.eval()` + `torch.no_grad()`. It does not train.
+Important views:
 
-## Kaggle: one self-contained HTML file
+- **Overview** — the complete inference path.
+- **Embeddings** — choose a token and inspect token + position = combined representation.
+- **Attention** — choose any of the 4 layers and 4 heads; click a heatmap cell to inspect the actual Q·K calculation behind that attention weight.
+- **Residual stream** — see what attention and the MLP add to a selected token representation.
+- **MLP / GELU** — inspect the strongest hidden activations for a token.
+- **Prediction** — inspect the top next-token probabilities and logits.
 
-No Node or TypeScript build step is required.
+The visualizer uses the tensors from `mini-world-trace.json`. Changing HTML/CSS/JavaScript does **not** retrain the model.
+
+## Training notebook
+
+Notebook:
+
+```text
+notebooks/kaggle_mini_world_visualizer.ipynb
+```
+
+The notebook trains the small GPT on `mini-world.txt`, saves `mini-world-gpt.pth`, traces one forward pass, and exports `mini-world-trace.json`.
+
+The model used for the current trace has:
+
+- 4 Transformer layers
+- 4 attention heads
+- embedding dimension 128
+- context length 32
+
+## Standalone Kaggle export
+
+The Python exporter still works:
 
 ```python
 from python.export_visualizer import build_visualizer
 
 build_visualizer(
-    "/kaggle/working/trace.json",
-    "/kaggle/working/llm-debugger.html",
+    "/kaggle/working/mini-world-trace.json",
+    "/kaggle/working/mini-world-debugger.html",
 )
 ```
 
-Display it in the notebook:
-
-```python
-from IPython.display import HTML, display
-display(HTML(open("/kaggle/working/llm-debugger.html", encoding="utf-8").read()))
-```
-
-If a Kaggle rendering mode sanitizes notebook JavaScript, open/download the generated `llm-debugger.html` from notebook outputs. It is standalone.
-
-## Views
-
-- **Overview** — the forward-pass pipeline.
-- **Tokens** — token text and IDs.
-- **Embeddings** — token, position, and combined vectors as compact heat rows.
-- **Attention** — choose layer/head, inspect the attention matrix, click a cell to expand its Q·K calculation and softmax weight.
-- **MLP / GELU** — W1 output, GELU output, and W2 output for one token.
-- **Logits** — top next-token probabilities.
-
-The browser is plain HTML/CSS/JavaScript. The real calculations remain in PyTorch.
+It embeds the same frontend and trace into one standalone HTML file.
