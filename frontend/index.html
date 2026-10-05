@@ -3,48 +3,55 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LLM Forward-Pass Debugger</title>
+  <title>Mini-World LLM Debugger</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div>
-        <div class="eyebrow">LLM FROM SCRATCH</div>
+        <div class="eyebrow">MINI-WORLD GPT</div>
         <h1>Forward-Pass Debugger</h1>
-        <p class="muted">Inspect one real prompt without drowning in every multiplication.</p>
+        <p class="muted">Follow one real prompt through the model, from token IDs to the next-token prediction.</p>
       </div>
 
-      <nav id="stepNav" class="step-nav">
-        <button data-step="overview" class="active">1. Overview</button>
-        <button data-step="tokens">2. Tokens</button>
-        <button data-step="embeddings">3. Embeddings</button>
-        <button data-step="attention">4. Attention</button>
-        <button data-step="mlp">5. MLP / GELU</button>
-        <button data-step="logits">6. Logits</button>
+      <nav id="stepNav" class="step-nav" aria-label="Forward-pass stages">
+        <button data-step="overview" class="active"><span>01</span> Overview</button>
+        <button data-step="embeddings"><span>02</span> Embeddings</button>
+        <button data-step="attention"><span>03</span> Attention</button>
+        <button data-step="residual"><span>04</span> Residual stream</button>
+        <button data-step="mlp"><span>05</span> MLP / GELU</button>
+        <button data-step="logits"><span>06</span> Prediction</button>
       </nav>
 
-      <label class="file-button">
-        Load trace.json
-        <input id="traceFile" type="file" accept="application/json,.json">
-      </label>
+      <div class="sidebar-bottom">
+        <div id="dataStatus" class="data-status">Looking for mini-world-trace.json…</div>
+        <label class="file-button">
+          Load another trace
+          <input id="traceFile" type="file" accept="application/json,.json">
+        </label>
+      </div>
     </aside>
 
     <main class="main">
       <header class="toolbar">
         <div>
-          <div class="eyebrow">TRACE</div>
+          <div class="eyebrow dark">REAL FORWARD PASS</div>
           <div id="traceSummary" class="trace-summary">No trace loaded</div>
         </div>
         <div id="selectors" class="selectors hidden">
           <label>Layer <select id="layerSelect"></select></label>
-          <label>Head <select id="headSelect"></select></label>
+          <label id="headLabel">Head <select id="headSelect"></select></label>
+          <label id="tokenLabel">Token <select id="tokenSelect"></select></label>
         </div>
       </header>
 
       <section id="emptyState" class="empty-state">
-        <h2>Load a forward-pass trace</h2>
-        <p>Generate <code>trace.json</code> from the trained Raschka-style model, then choose it here.</p>
+        <div class="drop-zone" id="dropZone">
+          <strong>Drop mini-world-trace.json here</strong>
+          <span>or use “Load another trace” on the left.</span>
+        </div>
+        <p>For automatic loading, place the file at <code>frontend/mini-world-trace.json</code>.</p>
       </section>
 
       <section id="content" class="content hidden"></section>
