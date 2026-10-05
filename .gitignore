@@ -4,4 +4,8 @@ __pycache__/
 *.pt
 trace.json
 llm-debugger.html
+mini-world-trace.json
+frontend/mini-world-trace.json
+node_modules/
+dist/
 .DS_Store
